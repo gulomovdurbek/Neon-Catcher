@@ -2,64 +2,92 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Naruto: Shinobi Legend</title>
+    <title>Naruto: Shinobi Training PRO</title>
     <style>
-        :root { --skin-color: #f39c12; --hair-color: #f1c40f; }
         body { margin: 0; background: #1a1a1a; color: white; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; overflow: hidden; }
-        #game-ui { display: flex; gap: 30px; padding: 20px; font-size: 24px; background: #222; width: 100%; justify-content: center; border-bottom: 4px solid #d35400; }
         
-        #stage { position: relative; width: 800px; height: 350px; background: #ecf0f1; border-bottom: 6px solid #d35400; overflow: hidden; margin-top: 20px; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
+        /* Панель статистики */
+        #stats { padding: 15px; font-size: 24px; background: #222; width: 100%; text-align: center; border-bottom: 3px solid #d35400; font-weight: bold; position: relative; }
+        
+        /* Всплывающее уведомление внутри игры (вместо alert) */
+        #msg-box { position: absolute; bottom: -40px; left: 50%; transform: translateX(-50%); background: #e67e22; color: white; padding: 5px 20px; border-radius: 0 0 10px 10px; font-size: 16px; display: none; z-index: 200; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
 
-        /* ПЕРСОНАЖ */
-        #player { position: absolute; width: 50px; height: 75px; bottom: 0; left: 60px; z-index: 10; transition: bottom 0.1s; }
-        .p-head { width: 30px; height: 30px; background: #ffdbac; border-radius: 50%; position: absolute; top: 0; left: 10px; border: 2px solid #000; z-index: 2; }
-        .p-hair { width: 36px; height: 18px; background: var(--hair-color); position: absolute; top: -5px; left: 7px; border-radius: 20px 20px 0 0; border: 1px solid #000; }
-        .p-body { width: 40px; height: 45px; background: var(--skin-color); position: absolute; bottom: 0; left: 5px; border-radius: 5px; border: 2px solid #000; }
+        /* Игровое поле */
+        #game { 
+            position: relative; width: 800px; height: 350px; 
+            background: url('https://i.imgur.com/8D78Z8p.png') repeat-x; 
+            background-size: cover;
+            border-bottom: 10px solid #8B4513; 
+            margin-top: 50px; overflow: hidden; cursor: pointer;
+        }
 
-        /* СЮРИКЕН */
-        .shuriken { position: absolute; width: 35px; height: 35px; background: #2d3436; clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); animation: spin 0.3s infinite linear; border: 1px solid #fff; }
+        /* Персонаж */
+        #player { 
+            position: absolute; width: 80px; height: 80px; 
+            bottom: 0; left: 50px; 
+            background: url('https://media.giphy.com/media/tS9P4ZYRAACKA/giphy.gif') no-repeat; 
+            background-size: contain; 
+            z-index: 10;
+        }
+
+        /* Сюрикен */
+        .shuriken { 
+            position: absolute; width: 45px; height: 45px; 
+            background: url('https://i.imgur.com/vHTh7jC.png') no-repeat; 
+            background-size: contain; 
+            animation: spin 0.4s infinite linear; 
+        }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-        /* ЭКРАН СМЕРТИ */
-        #game-over { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 100; }
-        #game-over h1 { color: #e74c3c; font-size: 50px; text-shadow: 0 0 10px #ff0000; }
-        .restart-btn { padding: 15px 30px; background: #e67e22; border: 2px solid #fff; color: white; cursor: pointer; border-radius: 10px; font-weight: bold; margin-top: 20px; }
-
-        /* МАГАЗИН */
+        /* Экраны состояний (Победа/Поражение) */
+        .overlay { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.85); display: none; flex-direction: column; 
+            justify-content: center; align-items: center; z-index: 100; text-align: center;
+        }
+        .overlay h1 { font-size: 60px; margin-bottom: 10px; text-shadow: 0 0 20px currentColor; }
+        
+        .btn { 
+            padding: 15px 30px; background: #e67e22; border: 2px solid #fff; 
+            color: white; cursor: pointer; border-radius: 10px; 
+            font-weight: bold; font-size: 20px; transition: 0.2s; margin: 10px;
+        }
+        .btn:hover { background: #d35400; transform: scale(1.05); }
+        
         .shop { margin-top: 20px; display: flex; gap: 10px; }
-        .shop-btn { padding: 10px; background: #333; border: 1px solid #e67e22; color: white; cursor: pointer; border-radius: 5px; }
     </style>
 </head>
 <body>
 
-<div id="game-ui">
-    <span>💰 Монеты: <b id="coins">0</b></span>
-    <span>⏱️ Время: <b id="timer">30</b>с</span>
-</div>
-
-<div id="stage" onclick="jump()">
-    <div id="player">
-        <div class="p-hair" id="hair"></div>
-        <div class="p-head"></div>
-        <div class="p-body" id="body"></div>
+    <div id="stats">
+        💰 Монеты: <span id="coins">0</span> | ⏱️ Время: <span id="timer">30</span>с
+        <div id="msg-box">Сообщение</div>
     </div>
-    
-    <div id="game-over">
-        <h1>ПОРАЖЕНИЕ</h1>
-        <button class="restart-btn" onclick="location.reload()">ВЕРНУТЬСЯ В БОЙ</button>
-    </div>
-</div>
 
-<div class="shop">
-    <div class="shop-btn" onclick="buySkin('naruto', 0)">Наруто (0)</div>
-    <div class="shop-btn" onclick="buySkin('sakura', 15)">Сакура (15)</div>
-    <div class="shop-btn" onclick="buySkin('kakashi', 30)">Какаши (30)</div>
-    <div class="shop-btn" onclick="buySkin('itachi', 50)">Итачи (50)</div>
-</div>
+    <div id="game" onclick="jump()">
+        <div id="player"></div>
+        
+        <div id="over" class="overlay">
+            <h1 style="color: #ff0000;">ПОРАЖЕНИЕ</h1>
+            <p>Твое дзюцу оказалось слабым...</p>
+            <button class="btn" onclick="location.reload()">ПОПРОБОВАТЬ СНОВА</button>
+        </div>
+
+        <div id="win" class="overlay">
+            <h1 style="color: #2ecc71;">МИССИЯ ВЫПОЛНЕНА</h1>
+            <p>Ты настоящий ниндзя Конохи!</p>
+            <button class="btn" onclick="location.reload()">СЛЕДУЮЩИЙ УРОВЕНЬ</button>
+        </div>
+    </div>
+
+    <div class="shop">
+        <button class="btn" onclick="buy('https://media.giphy.com/media/11mB6clX6m7fPy/giphy.gif', 15)">Сакура (15💰)</button>
+        <button class="btn" onclick="buy('https://media.giphy.com/media/U7S86m87A4S76/giphy.gif', 30)">Какаши (30💰)</button>
+        <button class="btn" onclick="buy('https://media.giphy.com/media/7S66f81Beb0t2/giphy.gif', 50)">Итачи (50💰)</button>
+    </div>
 
 <script>
-    let coins = parseInt(localStorage.getItem('naruto_coins')) || 0;
+    let coins = parseInt(localStorage.getItem('n_coins')) || 0;
     let isJumping = false;
     let isGameOver = false;
     let timeLeft = 30;
@@ -67,94 +95,88 @@
     const coinEl = document.getElementById('coins');
     const timerEl = document.getElementById('timer');
     const player = document.getElementById('player');
-    const stage = document.getElementById('stage');
+    const msgBox = document.getElementById('msg-box');
 
-    function updateCoins() {
-        coinEl.innerText = coins;
-        localStorage.setItem('naruto_coins', coins);
+    coinEl.innerText = coins;
+
+    function showMsg(text) {
+        msgBox.innerText = text;
+        msgBox.style.display = 'block';
+        setTimeout(() => { msgBox.style.display = 'none'; }, 2000);
     }
-    updateCoins();
 
-    // Прыжок
     function jump() {
         if (isJumping || isGameOver) return;
         isJumping = true;
-        let p = 0;
+        let pos = 0;
         let up = setInterval(() => {
-            if (p >= 150) {
+            if (pos >= 150) {
                 clearInterval(up);
                 let down = setInterval(() => {
-                    if (p <= 0) { clearInterval(down); isJumping = false; }
-                    p -= 7; player.style.bottom = p + 'px';
+                    if (pos <= 0) { clearInterval(down); isJumping = false; }
+                    pos -= 7; player.style.bottom = pos + 'px';
                 }, 20);
             }
-            p += 9; player.style.bottom = p + 'px';
+            pos += 10; player.style.bottom = pos + 'px';
         }, 20);
     }
 
-    // Создание сюрикенов
     function spawn() {
         if (isGameOver) return;
         const s = document.createElement('div');
         s.className = 'shuriken';
-        let x = 800;
-        s.style.left = x + 'px';
-        s.style.bottom = (Math.random() > 0.5 ? '10px' : '70px');
-        stage.appendChild(s);
+        let sx = 800;
+        s.style.left = sx + 'px';
+        s.style.bottom = (Math.random() > 0.5 ? '15px' : '75px');
+        document.getElementById('game').appendChild(s);
 
         let move = setInterval(() => {
-            if (isGameOver) { clearInterval(move); s.remove(); return; }
-            x -= 10;
-            s.style.left = x + 'px';
+            if (isGameOver) { s.remove(); clearInterval(move); return; }
+            sx -= 12;
+            s.style.left = sx + 'px';
 
-            if (x < -40) {
+            if (sx < -50) {
                 clearInterval(move);
                 s.remove();
-                coins++; updateCoins();
+                coins++;
+                coinEl.innerText = coins;
+                localStorage.setItem('n_coins', coins);
             }
 
             let pr = player.getBoundingClientRect();
             let sr = s.getBoundingClientRect();
-            if (pr.right > sr.left + 10 && pr.left < sr.right - 10 && pr.bottom > sr.top + 10 && pr.top < sr.bottom - 10) {
+            if (pr.right > sr.left+15 && pr.left < sr.right-15 && pr.bottom > sr.top+15 && pr.top < sr.bottom-15) {
                 isGameOver = true;
-                document.getElementById('game-over').style.display = 'flex';
+                document.getElementById('over').style.display = 'flex';
             }
         }, 20);
-        setTimeout(spawn, Math.random() * 1500 + 1000);
+        setTimeout(spawn, 1000 + Math.random() * 1000);
     }
 
-    // Магазин
-    const skins = {
-        naruto: { body: '#f39c12', hair: '#f1c40f' },
-        sakura: { body: '#ff9ff3', hair: '#feca57' },
-        kakashi: { body: '#2f3542', hair: '#dcdde1' },
-        itachi: { body: '#000000', hair: '#2d3436' }
-    };
-
-    function buySkin(name, price) {
+    function buy(gifUrl, price) {
         if (coins >= price) {
-            if (price > 0 && !confirm("Купить скин?")) return;
-            coins -= price; updateCoins();
-            document.getElementById('body').style.backgroundColor = skins[name].body;
-            document.getElementById('hair').style.backgroundColor = skins[name].hair;
-            alert("Скин успешно выбран!");
+            coins -= price;
+            coinEl.innerText = coins;
+            localStorage.setItem('n_coins', coins);
+            player.style.backgroundImage = url('${gifUrl}');
+            showMsg("Скин изменен! ✨");
         } else {
-            alert("Недостаточно монет!");
+            showMsg("Недостаточно монет! ❌");
         }
     }
 
-    // Таймер
-    setInterval(() => {
+    let clock = setInterval(() => {
         if (isGameOver) return;
         timeLeft--;
         timerEl.innerText = timeLeft;
-        if (timeLeft <= 0) {
-            alert("Уровень пройден! Ты — истинный Хокаге!");
-            location.reload();
+        if (timeLeft <= 0) { 
+            clearInterval(clock);
+            isGameOver = true;
+            document.getElementById('win').style.display = 'flex';
         }
     }, 1000);
 
-    document.addEventListener('keydown', e => { if(e.code === 'Space') jump(); });
+    document.addEventListener('keydown', (e) => { if(e.code === 'Space') jump(); });
     spawn();
 </script>
 </body>
